@@ -174,6 +174,8 @@ int main(int argc, char* argv[]) {
 		texco_stride = 2 * sizeof(texco[0]);
 	}
 
+	GLenum index_m;
+	GLenum index_t;
 	GLsizei index_count;
 	GLuint index_bo;
 	{
@@ -183,6 +185,8 @@ int main(int argc, char* argv[]) {
 		};
 		glCreateBuffers(1, &index_bo);
 		glNamedBufferStorage(index_bo, index.size() * sizeof(index[0]), index.data(), 0);
+		index_m = GL_TRIANGLES;
+		index_t = GL_UNSIGNED_INT;
 		index_count = index.size();
 	}
 
@@ -205,7 +209,7 @@ int main(int argc, char* argv[]) {
 
 	while (!glfwWindowShouldClose(window)) {
 		glClearBufferfv(GL_COLOR, 0, fill.data());
-		glDrawElements(GL_TRIANGLES, index_count, GL_UNSIGNED_INT, nullptr);
+		glDrawElements(index_m, index_count, index_t, nullptr);
 
 		glfwSwapBuffers(window);
 
