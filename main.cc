@@ -67,8 +67,11 @@ int main(int argc, char* argv[]) {
 	}
 	glUseProgram(shader);
 
+	GLint const uniform_tex {glGetUniformLocation(shader, "tex")};
+
 	GLuint point_ib {0};
 	GLuint color_ib {1};
+	GLuint texco_ib {2};
 
 	GLuint format_ao;
 	{
@@ -85,7 +88,44 @@ int main(int argc, char* argv[]) {
 		glVertexAttribFormat(shader_col, 3, GL_FLOAT, GL_FALSE, 0);
 		glVertexAttribBinding(shader_col, color_ib);
 
+		GLint const shader_tco {glGetAttribLocation(shader, "vTexCoord")};
+		glEnableVertexAttribArray(shader_tco);
+		glVertexAttribFormat(shader_tco, 2, GL_FLOAT, GL_FALSE, 0);
+		glVertexAttribBinding(shader_tco, texco_ib);
+
 		glBindVertexArray(0);
+	}
+
+	GLuint textu_bo;
+	{
+		std::vector<GLubyte> const textu {
+			0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
+			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
+			0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
+			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
+			0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
+			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
+			0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
+			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff
+		};
+		glCreateBuffers(1, &textu_bo);
+		glNamedBufferStorage(textu_bo, textu.size() * sizeof(textu[0]), textu.data(), 0);
+	}
+
+	GLuint texture;
+	{
+		glCreateTextures(GL_TEXTURE_2D, /* 0 */ 1, &texture); /* don't work with level 0 */
+		glTextureStorage2D(texture, 1, GL_R8, 8, 8);
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, textu_bo);
+		glTextureSubImage2D(texture, 0, 0, 0, 8, 8, GL_RED, GL_UNSIGNED_BYTE, 0);
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+	}
+
+	GLuint sampler;
+	{
+		glCreateSamplers(1, &sampler);
+		glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	}
 
 	GLsizei point_stride;
@@ -116,6 +156,20 @@ int main(int argc, char* argv[]) {
 		color_stride = 3 * sizeof(color[0]);
 	}
 
+	GLsizei texco_stride;
+	GLuint texco_bo;
+	{
+		std::vector<GLfloat> const texco {
+			0.0f, 0.0f,
+			1.0f, 0.0f,
+			1.0f, 1.0f,
+			0.0f, 1.0f
+		};
+		glCreateBuffers(1, &texco_bo);
+		glNamedBufferStorage(texco_bo, texco.size() * sizeof(texco[0]), texco.data(), 0);
+		texco_stride = 2 * sizeof(texco[0]);
+	}
+
 	GLsizei index_count;
 	GLuint index_bo;
 	{
@@ -132,9 +186,14 @@ int main(int argc, char* argv[]) {
 
 	std::vector<GLfloat> const fill {0.0f, 0.0f, 0.0f, 0.0f};
 
+	glBindTextureUnit(uniform_tex, texture); /* crash when texture() don't exist */
+	glBindSampler(uniform_tex, sampler);
+	glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, std::vector({GL_RED, GL_RED, GL_RED, GL_ONE}).data());
+
 	glBindVertexArray(format_ao);
 	glBindVertexBuffer(point_ib, point_bo, 0, point_stride);
 	glBindVertexBuffer(color_ib, color_bo, 0, color_stride);
+	glBindVertexBuffer(texco_ib, texco_bo, 0, texco_stride);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_bo);
 
 	std::chrono::microseconds const r_limit {16666}; /* 60Hz */
