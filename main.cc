@@ -73,8 +73,7 @@ int main(int argc, char* argv[]) {
 
 	GLint const uniform_tex {glGetUniformLocation(shader, "tex")};
 
-	GLuint point_ib {0};
-	GLuint texco_ib {2};
+	GLuint vertex_ib {0};
 
 	GLuint format_ao;
 	{
@@ -84,12 +83,12 @@ int main(int argc, char* argv[]) {
 		GLint const shader_pos {glGetAttribLocation(shader, "vPosition")};
 		glEnableVertexAttribArray(shader_pos);
 		glVertexAttribFormat(shader_pos, 2, GL_FLOAT, GL_FALSE, 0);
-		glVertexAttribBinding(shader_pos, point_ib);
+		glVertexAttribBinding(shader_pos, vertex_ib);
 
 		GLint const shader_tco {glGetAttribLocation(shader, "vTexCoord")};
 		glEnableVertexAttribArray(shader_tco);
-		glVertexAttribFormat(shader_tco, 2, GL_FLOAT, GL_FALSE, 0);
-		glVertexAttribBinding(shader_tco, texco_ib);
+		glVertexAttribFormat(shader_tco, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GLfloat));
+		glVertexAttribBinding(shader_tco, vertex_ib);
 
 		glBindVertexArray(0);
 	}
@@ -126,32 +125,18 @@ int main(int argc, char* argv[]) {
 		glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	}
 
-	GLsizei point_stride;
-	GLuint point_bo;
+	GLsizei vertex_stride;
+	GLuint vertex_bo;
 	{
-		std::vector<GLfloat> const point {
-			-0.5f,  0.5f,
-			 0.5f,  0.5f,
-			 0.5f, -0.5f,
-			-0.5f, -0.5f
+		std::vector<GLfloat> const vertex {
+			-0.5f,  0.5f, 0.0f, 0.0f,
+			 0.5f,  0.5f, 1.0f, 0.0f,
+			 0.5f, -0.5f, 1.0f, 1.0f,
+			-0.5f, -0.5f, 0.0f, 1.0f
 		};
-		glCreateBuffers(1, &point_bo);
-		glNamedBufferStorage(point_bo, point.size() * sizeof(point[0]), point.data(), 0);
-		point_stride = 2 * sizeof(point[0]);
-	}
-
-	GLsizei texco_stride;
-	GLuint texco_bo;
-	{
-		std::vector<GLfloat> const texco {
-			0.0f, 0.0f,
-			1.0f, 0.0f,
-			1.0f, 1.0f,
-			0.0f, 1.0f
-		};
-		glCreateBuffers(1, &texco_bo);
-		glNamedBufferStorage(texco_bo, texco.size() * sizeof(texco[0]), texco.data(), 0);
-		texco_stride = 2 * sizeof(texco[0]);
+		glCreateBuffers(1, &vertex_bo);
+		glNamedBufferStorage(vertex_bo, vertex.size() * sizeof(vertex[0]), vertex.data(), 0);
+		vertex_stride = 4 * sizeof(vertex[0]);
 	}
 
 	GLenum index_m;
@@ -179,8 +164,7 @@ int main(int argc, char* argv[]) {
 	glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, std::vector({GL_RED, GL_RED, GL_RED, GL_ONE}).data());
 
 	glBindVertexArray(format_ao);
-	glBindVertexBuffer(point_ib, point_bo, 0, point_stride);
-	glBindVertexBuffer(texco_ib, texco_bo, 0, texco_stride);
+	glBindVertexBuffer(vertex_ib, vertex_bo, 0, vertex_stride);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_bo);
 
 	std::chrono::microseconds const r_limit {16666}; /* 60Hz */
