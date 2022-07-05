@@ -5,6 +5,8 @@
 #include <GLFW/glfw3.h>
 #include <fstream>
 #include <stdexcept>
+#include <chrono>
+#include <thread>
 
 std::string file_content(std::string const&);
 GLuint shader_compile(GLenum, std::string const&);
@@ -132,6 +134,9 @@ int main(int argc, char* argv[]) {
 	glBindVertexBuffer(color_ib, color_bo, 0, color_stride);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_bo);
 
+	std::chrono::microseconds const r_limit {16666}; /* 60Hz */
+	auto r_last {std::chrono::steady_clock::now()};
+
 	while (!glfwWindowShouldClose(window)) {
 		glClearBufferfv(GL_COLOR, 0, fill.data());
 		glDrawElements(GL_TRIANGLES, index_count, GL_UNSIGNED_INT, nullptr);
@@ -139,6 +144,9 @@ int main(int argc, char* argv[]) {
 		glfwSwapBuffers(window);
 
 		glfwPollEvents();
+
+		std::this_thread::sleep_for(r_limit - (std::chrono::steady_clock::now() - r_last));
+		r_last = std::chrono::steady_clock::now();
 	}
 
 	glfwTerminate();
