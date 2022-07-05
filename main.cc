@@ -95,19 +95,19 @@ int main(int argc, char* argv[]) {
 
 	GLuint texture;
 	{
-		std::vector<GLubyte> const textu {
-			0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
-			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
-			0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
-			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
-			0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
-			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
-			0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
-			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff
+		std::vector<GLuint> const textu {
+			0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff,
+			0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000,
+			0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff,
+			0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000,
+			0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff,
+			0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000,
+			0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff,
+			0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000
 		};
 		glCreateTextures(GL_TEXTURE_2D, 1, &texture);
-		glTextureStorage2D(texture, 1, GL_R8, 8, 8);
-		glTextureSubImage2D(texture, 0, 0, 0, 8, 8, GL_RED, GL_UNSIGNED_BYTE, textu.data());
+		glTextureStorage2D(texture, 1, GL_RGBA8, 8, 8);
+		glTextureSubImage2D(texture, 0, 0, 0, 8, 8, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, textu.data());
 	}
 
 	GLuint sampler;
@@ -121,10 +121,10 @@ int main(int argc, char* argv[]) {
 	GLuint vertex_bo;
 	{
 		std::vector<GLfloat> const vertex {
-			-0.5f,  0.5f, 0.0f, 0.0f,
-			 0.5f,  0.5f, 1.0f, 0.0f,
-			 0.5f, -0.5f, 1.0f, 1.0f,
-			-0.5f, -0.5f, 0.0f, 1.0f
+			-1.0f,  1.0f, 0.0f, 0.0f,
+			 1.0f,  1.0f, 1.0f, 0.0f,
+			 1.0f, -1.0f, 1.0f, 1.0f,
+			-1.0f, -1.0f, 0.0f, 1.0f
 		};
 		glCreateBuffers(1, &vertex_bo);
 		glNamedBufferStorage(vertex_bo, vertex.size() * sizeof(vertex[0]), vertex.data(), 0);
@@ -153,7 +153,6 @@ int main(int argc, char* argv[]) {
 
 	glBindTextureUnit(uniform_tex, texture);
 	glBindSampler(uniform_tex, sampler);
-	glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, std::vector({GL_RED, GL_RED, GL_RED, GL_ONE}).data());
 
 	glBindVertexArray(format_ao);
 	glBindVertexBuffer(vertex_ib, vertex_bo, 0, vertex_stride);
