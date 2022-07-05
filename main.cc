@@ -36,6 +36,10 @@ int main(int argc, char* argv[]) {
 			glfwTerminate();
 			return -1;
 		}
+
+		glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height) {
+			glViewport(0, 0, width, height);
+		});
 	}
 	glfwMakeContextCurrent(window);
 	{
