@@ -24,29 +24,32 @@ int main(int argc, char* argv[]) {
 	if (!glfwInit())
 		return -1;
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	GLFWwindow* window;
+	{
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow* window = glfwCreateWindow(960, 720, "Hello World", nullptr, nullptr);
+		window = glfwCreateWindow(960, 720, "Hello World", nullptr, nullptr);
 
-	if (!window) {
-		glfwTerminate();
-		return -1;
+		if (!window) {
+			glfwTerminate();
+			return -1;
+		}
 	}
-
 	glfwMakeContextCurrent(window);
+	{
+		if (gl3wInit())
+			return -1;
 
-	if (gl3wInit())
-		return -1;
+		if (!gl3wIsSupported(4, 5))
+			return -1;
 
-	if (!gl3wIsSupported(4, 5))
-		return -1;
-
-	std::cout
-		<< "OpenGL " << glGetString(GL_VERSION)
-		<< ", GLSL " << glGetString(GL_SHADING_LANGUAGE_VERSION)
-		<< '\n';
+		std::cout
+			<< "OpenGL " << glGetString(GL_VERSION)
+			<< ", GLSL " << glGetString(GL_SHADING_LANGUAGE_VERSION)
+			<< '\n';
+	}
 
 	GLuint shader;
 	try {
