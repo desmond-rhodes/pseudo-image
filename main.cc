@@ -74,7 +74,6 @@ int main(int argc, char* argv[]) {
 	GLint const uniform_tex {glGetUniformLocation(shader, "tex")};
 
 	GLuint point_ib {0};
-	GLuint color_ib {1};
 	GLuint texco_ib {2};
 
 	GLuint format_ao;
@@ -86,11 +85,6 @@ int main(int argc, char* argv[]) {
 		glEnableVertexAttribArray(shader_pos);
 		glVertexAttribFormat(shader_pos, 2, GL_FLOAT, GL_FALSE, 0);
 		glVertexAttribBinding(shader_pos, point_ib);
-
-		GLint const shader_col {glGetAttribLocation(shader, "vColor")};
-		glEnableVertexAttribArray(shader_col);
-		glVertexAttribFormat(shader_col, 3, GL_FLOAT, GL_FALSE, 0);
-		glVertexAttribBinding(shader_col, color_ib);
 
 		GLint const shader_tco {glGetAttribLocation(shader, "vTexCoord")};
 		glEnableVertexAttribArray(shader_tco);
@@ -146,20 +140,6 @@ int main(int argc, char* argv[]) {
 		point_stride = 2 * sizeof(point[0]);
 	}
 
-	GLsizei color_stride;
-	GLuint color_bo;
-	{
-		std::vector<GLfloat> const color {
-			1.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 1.0f,
-			0.0f, 1.0f, 1.0f
-		};
-		glCreateBuffers(1, &color_bo);
-		glNamedBufferStorage(color_bo, color.size() * sizeof(color[0]), color.data(), 0);
-		color_stride = 3 * sizeof(color[0]);
-	}
-
 	GLsizei texco_stride;
 	GLuint texco_bo;
 	{
@@ -200,7 +180,6 @@ int main(int argc, char* argv[]) {
 
 	glBindVertexArray(format_ao);
 	glBindVertexBuffer(point_ib, point_bo, 0, point_stride);
-	glBindVertexBuffer(color_ib, color_bo, 0, color_stride);
 	glBindVertexBuffer(texco_ib, texco_bo, 0, texco_stride);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_bo);
 
