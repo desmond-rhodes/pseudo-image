@@ -93,7 +93,7 @@ int main(int argc, char* argv[]) {
 		glBindVertexArray(0);
 	}
 
-	GLuint textu_bo;
+	GLuint texture;
 	{
 		std::vector<GLubyte> const textu {
 			0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
@@ -105,17 +105,9 @@ int main(int argc, char* argv[]) {
 			0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
 			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff
 		};
-		glCreateBuffers(1, &textu_bo);
-		glNamedBufferStorage(textu_bo, textu.size() * sizeof(textu[0]), textu.data(), 0);
-	}
-
-	GLuint texture;
-	{
-		glCreateTextures(GL_TEXTURE_2D, /* 0 */ 1, &texture); /* don't work with level 0 */
+		glCreateTextures(GL_TEXTURE_2D, 1, &texture);
 		glTextureStorage2D(texture, 1, GL_R8, 8, 8);
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, textu_bo);
-		glTextureSubImage2D(texture, 0, 0, 0, 8, 8, GL_RED, GL_UNSIGNED_BYTE, 0);
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+		glTextureSubImage2D(texture, 0, 0, 0, 8, 8, GL_RED, GL_UNSIGNED_BYTE, textu.data());
 	}
 
 	GLuint sampler;
@@ -159,7 +151,7 @@ int main(int argc, char* argv[]) {
 
 	std::vector<GLfloat> const fill {0.0f, 0.0f, 0.0f, 0.0f};
 
-	glBindTextureUnit(uniform_tex, texture); /* crash when texture() don't exist */
+	glBindTextureUnit(uniform_tex, texture);
 	glBindSampler(uniform_tex, sampler);
 	glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, std::vector({GL_RED, GL_RED, GL_RED, GL_ONE}).data());
 
