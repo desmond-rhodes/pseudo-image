@@ -32,19 +32,31 @@ GLuint shader_compile(GLenum, std::string const&);
 GLuint shader_link(std::vector<GLuint> const&);
 
 int pseudo_image(std::vector<std::string> const& args) {
-	size_t image_w {8};
-	size_t image_h {8};
-
-	std::vector<GLuint> image {
-		0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff,
-		0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000,
-		0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff,
-		0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000,
-		0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff,
-		0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000,
-		0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff,
-		0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000
-	};
+	struct {
+		bool renew(size_t w, size_t h) {
+			if (data == nullptr) {
+				delete[] data;
+				this->w = 8;
+				this->h = 8;
+				data = new GLuint[this->w*this->h] {
+					0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff,
+					0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000,
+					0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff,
+					0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000,
+					0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff,
+					0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000,
+					0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff,
+					0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000
+				};
+				return true;
+			}
+			return false;
+		}
+		GLuint* data {nullptr};
+		size_t w;
+		size_t h;
+	}
+	image;
 
 	struct glfwHandle {
 		glfwHandle() {
@@ -57,15 +69,27 @@ int pseudo_image(std::vector<std::string> const& args) {
 	}
 	use_glfw;
 
+	struct winfo_t {
+		int w {960};
+		int h {720};
+	}
+	winfo;
+
 	GLFWwindow* window;
 	{
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-		window = glfwCreateWindow(960, 720, "Hello World", nullptr, nullptr);
+		window = glfwCreateWindow(winfo.w, winfo.h, "Hello World", nullptr, nullptr);
 		if (!window)
 			return -1;
-		glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height) { glViewport(0, 0, width, height); });
+		glfwSetWindowUserPointer(window, static_cast<void*>(&winfo));
+		glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int w, int h) {
+			auto winfo {static_cast<winfo_t*>(glfwGetWindowUserPointer(window))};
+			winfo->w = w;
+			winfo->h = h;
+			glViewport(0, 0, w, h);
+		});
 		glfwMakeContextCurrent(window);
 		if (gl3wInit())
 			return -1;
@@ -125,18 +149,37 @@ int pseudo_image(std::vector<std::string> const& args) {
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 	}
 
-	GLuint texture;
-	{
-		glCreateTextures(GL_TEXTURE_2D, 1, &texture);
-		glTextureStorage2D(texture, 1, GL_RGBA8, image_w, image_h);
-		glBindTextureUnit(uniform_tex, texture);
+	struct {
+		void resize(GLsizei w, GLsizei h) {
+			this->w = w;
+			this->h = h;
+			glDeleteTextures(1, &name);
+			glCreateTextures(GL_TEXTURE_2D, 1, &name);
+			glTextureStorage2D(name, 1, GL_RGBA8, w, h);
+		}
+		void bind(GLuint uniform) {
+			glBindTextureUnit(uniform, name);
+		}
+		void data(size_t w, size_t h, GLuint const* image) {
+			glTextureSubImage2D(name, 0, 0, 0, w, h, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, image);
+		}
+		GLuint name {0};
+		GLsizei w;
+		GLsizei h;
 	}
+	texture;
 
 	std::chrono::microseconds const r_limit {16666}; /* 60Hz */
 	auto r_last {std::chrono::steady_clock::now()};
 
 	while (!glfwWindowShouldClose(window)) {
-		glTextureSubImage2D(texture, 0, 0, 0, image_w, image_h, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, image.data());
+		if (image.renew(winfo.w, winfo.h)) {
+			if (image.w != texture.w || image.h != texture.h) {
+				texture.resize(image.w, image.h);
+				texture.bind(uniform_tex);
+			}
+			texture.data(image.w, image.h, image.data);
+		}
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 		glfwSwapBuffers(window);
 		glfwPollEvents();
