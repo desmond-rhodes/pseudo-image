@@ -34,20 +34,14 @@ GLuint shader_link(std::vector<GLuint> const&);
 int pseudo_image(std::vector<std::string> const& args) {
 	struct {
 		bool renew(size_t w, size_t h) {
-			if (data == nullptr) {
+			if (data == nullptr || w != this->w || h != this->h) {
 				delete[] data;
-				this->w = 8;
-				this->h = 8;
-				data = new GLuint[this->w*this->h] {
-					0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff,
-					0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000,
-					0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff,
-					0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000,
-					0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff,
-					0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000,
-					0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff,
-					0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000
-				};
+				this->w = w;
+				this->h = h;
+				data = new GLuint[this->w*this->h];
+				for (size_t j {0}; j < this->h; ++j)
+					for (size_t i {0}; i < this->w; ++i)
+						data[j*this->w+i] = fragment(i, j);
 				return true;
 			}
 			return false;
@@ -55,6 +49,28 @@ int pseudo_image(std::vector<std::string> const& args) {
 		GLuint* data {nullptr};
 		size_t w;
 		size_t h;
+
+	private:
+		GLuint fragment(size_t i, size_t j) {
+			auto const u {50.0};
+			auto const r {1.0/(2*u)};
+			auto const x { (-static_cast<double>(w)/2+i)/u};
+			auto const y {-(-static_cast<double>(h)/2+j)/u};
+			GLuint color {0xffffffff};
+			if (std::abs(x) <= r)
+				color = 0xff000000;
+			if (std::abs(y) <= r)
+				color = 0xff000000;
+			if (std::abs(x*x+y*y - 10) <= 20*r)
+				color = 0xff000000;
+			if (std::abs(y+4 - 0.01*(x+7)*(x+5)*(x-2)*(x-6)) <= 14*r)
+				color = 0xff000000;
+			if (std::abs(y+2 - 0.5*x) <= 6*r)
+				color = 0xff000000;
+			if (std::abs(x-1 + 0.1*y*y) <= 4*r)
+				color = 0xff000000;
+			return color;
+		}
 	}
 	image;
 
