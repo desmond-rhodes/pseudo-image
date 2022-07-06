@@ -195,9 +195,9 @@ int pseudo_image(std::vector<std::string> const& args) {
 				texture.bind(uniform_tex);
 			}
 			texture.data(image.w, image.h, image.data);
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+			glfwSwapBuffers(window);
 		}
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
-		glfwSwapBuffers(window);
 		glfwPollEvents();
 		std::this_thread::sleep_for(r_limit - (std::chrono::steady_clock::now() - r_last));
 		r_last = std::chrono::steady_clock::now();
