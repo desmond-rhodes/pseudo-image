@@ -27,11 +27,6 @@ int main(int argc, char* argv[]) {
 	}
 }
 
-struct glfwHandle {
-	glfwHandle();
-	~glfwHandle();
-};
-
 std::string file_content(std::string const&);
 GLuint shader_compile(GLenum, std::string const&);
 GLuint shader_link(std::vector<GLuint> const&);
@@ -51,7 +46,16 @@ int pseudo_image(std::vector<std::string> const& args) {
 		0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000, 0xff0000ff, 0xffff0000
 	};
 
-	glfwHandle use_glfw;
+	struct glfwHandle {
+		glfwHandle() {
+			if (!glfwInit())
+				throw std::runtime_error("glfwHandle");
+		}
+		~glfwHandle() {
+			glfwTerminate();
+		}
+	}
+	use_glfw;
 
 	GLFWwindow* window;
 	{
@@ -142,9 +146,6 @@ int pseudo_image(std::vector<std::string> const& args) {
 
 	return 0;
 }
-
-glfwHandle::glfwHandle() { if (!glfwInit()) throw std::runtime_error("glfwHandle"); }
-glfwHandle::~glfwHandle() { glfwTerminate(); }
 
 std::string file_content(std::string const& name) {
 	std::ifstream file;
