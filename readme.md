@@ -6,6 +6,7 @@ The makefile is built to be used from Ubuntu WSL in Windows.
 
 ## Assumptions
 
+- apt package manager
 - Bash
 - x86_64 architecture
 - OpenGL 4.5 minimum

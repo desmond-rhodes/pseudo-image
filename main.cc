@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <chrono>
 #include <thread>
+#include <cmath>
 
 int pseudo_image(std::vector<std::string> const&);
 
@@ -38,10 +39,17 @@ int pseudo_image(std::vector<std::string> const& args) {
 				delete[] data;
 				this->w = w;
 				this->h = h;
-				data = new GLuint[this->w*this->h];
-				for (size_t j {0}; j < this->h; ++j)
-					for (size_t i {0}; i < this->w; ++i)
-						data[j*this->w+i] = fragment(i, j);
+				data = new GLuint[w*h];
+
+				/* pixel per unit or density of a unit */
+				auto const unit {50.0};
+
+				/* used for -r <= x <= r, where 2r = 1pixel in length */
+				auto const r {1.0/(2*unit)};
+
+				for (size_t j {0}; j < h; ++j) for (size_t i {0}; i < w; ++i)
+					data[j*w+i] = fragment((w/-2.0+i)/unit, -(h/-2.0+j)/unit, r);
+
 				return true;
 			}
 			return false;
@@ -51,25 +59,43 @@ int pseudo_image(std::vector<std::string> const& args) {
 		size_t h;
 
 	private:
-		GLuint fragment(size_t i, size_t j) {
-			auto const u {50.0};
-			auto const r {1.0/(2*u)};
-			auto const x { (-static_cast<double>(w)/2+i)/u};
-			auto const y {-(-static_cast<double>(h)/2+j)/u};
-			GLuint color {0xffffffff};
-			if (std::abs(x) <= r)
-				color = 0xff000000;
-			if (std::abs(y) <= r)
-				color = 0xff000000;
-			if (std::abs(x*x+y*y - 10) <= 20*r)
-				color = 0xff000000;
-			if (std::abs(y+4 - 0.01*(x+7)*(x+5)*(x-2)*(x-6)) <= 14*r)
-				color = 0xff000000;
-			if (std::abs(y+2 - 0.5*x) <= 6*r)
-				color = 0xff000000;
-			if (std::abs(x-1 + 0.1*y*y) <= 4*r)
-				color = 0xff000000;
-			return color;
+		GLuint fragment(double x, double y, double r) {
+			GLuint color {0x000000};
+
+			/* x-axis */
+			if (r >= std::abs(y))
+				color = 0x333333;
+			/* x-axis 0.2 unit */
+			if (r < std::abs(x) && r >= std::abs(5*x-std::floor(5*x)) && 8*r >= std::abs(y))
+				color = 0x333333;
+			/* x-axis unit */
+			if (r < std::abs(x) && r >= std::abs(x-std::floor(x)) && 10*r >= std::abs(y))
+				color = 0x777777;
+
+			/* y-axis */
+			if (r >= std::abs(x))
+				color = 0x333333;
+			/* y-axis 0.2 unit */
+			if (r < std::abs(x) && r >= std::abs(5*y-std::floor(5*y)) && 8*r >= std::abs(x))
+				color = 0x333333;
+			/* y-axis unit */
+			if (r < std::abs(x) && r >= std::abs(y-std::floor(y)) && 10*r >= std::abs(x))
+				color = 0x777777;
+
+			/* line */
+			if (2*r >= std::abs(y+2 - 0.5*x))
+				color = 0xffffff;
+			/* circle */
+			if (10*r >= std::abs(x*x+y*y - 3.5*3.5))
+				color = 0xffffff;
+			/* parabola */
+			if (2*r >= std::abs(x-1 + 0.1*y*y))
+				color = 0xffffff;
+			/* polynomial */
+			if (12*r >= std::abs(y+4 - 0.01*(x+7)*(x+5)*(x-2)*(x-6)))
+				color = 0xffffff;
+
+			return ~color | 0xff000000;
 		}
 	}
 	image;
