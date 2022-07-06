@@ -86,6 +86,7 @@ int pseudo_image(std::vector<std::string> const& args) {
 	use_glfw;
 
 	struct winfo_t {
+		char const* title {"Pseudo Image"};
 		int w {960};
 		int h {720};
 	}
@@ -96,7 +97,7 @@ int pseudo_image(std::vector<std::string> const& args) {
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-		window = glfwCreateWindow(winfo.w, winfo.h, "Hello World", nullptr, nullptr);
+		window = glfwCreateWindow(winfo.w, winfo.h, winfo.title, nullptr, nullptr);
 		if (!window)
 			return -1;
 		glfwSetWindowUserPointer(window, static_cast<void*>(&winfo));
