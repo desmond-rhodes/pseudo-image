@@ -40,16 +40,15 @@ int pseudo_image(std::vector<std::string> const& args) {
 				this->w = w;
 				this->h = h;
 				data = new GLuint[w*h];
-
-				/* pixel per unit or density of a unit */
-				auto const unit {50.0};
-
-				/* used for -r <= x <= r, where 2r = 1pixel in length */
-				auto const r {1.0/(2*unit)};
-
-				for (size_t j {0}; j < h; ++j) for (size_t i {0}; i < w; ++i)
-					data[j*w+i] = fragment((w/-2.0+i)/unit, -(h/-2.0+j)/unit, r);
-
+				auto y {static_cast<int>(h)/-2};
+				for (size_t j {0}; j < h; ++j) {
+					auto x {static_cast<int>(w)/-2};
+					for (size_t i {0}; i < w; ++i) {
+						data[j*w+i] = fragment(x, y);
+						x += 1;
+					}
+					y += 1;
+				}
 				return true;
 			}
 			return false;
@@ -59,43 +58,43 @@ int pseudo_image(std::vector<std::string> const& args) {
 		size_t h;
 
 	private:
-		GLuint fragment(double x, double y, double r) {
+		GLuint fragment(int x, int y) {
 			GLuint color {0x000000};
 
 			/* x-axis */
-			if (r >= std::abs(y))
+			if (y == 0)
 				color = 0x333333;
-			/* x-axis 0.2 unit */
-			if (r < std::abs(x) && r >= std::abs(5*x-std::floor(5*x)) && 8*r >= std::abs(y))
+			/* x-axis 10 unit */
+			if (x != 0 && x %  10 == 0 && std::abs(y)  <= 8)
 				color = 0x333333;
-			/* x-axis unit */
-			if (r < std::abs(x) && r >= std::abs(x-std::floor(x)) && 10*r >= std::abs(y))
+			/* x-axis 100 unit */
+			if (x != 0 && x % 100 == 0 && std::abs(y) <= 10)
 				color = 0x777777;
 
 			/* y-axis */
-			if (r >= std::abs(x))
+			if (x == 0)
 				color = 0x333333;
-			/* y-axis 0.2 unit */
-			if (r < std::abs(x) && r >= std::abs(5*y-std::floor(5*y)) && 8*r >= std::abs(x))
+			/* y-axis 10 unit */
+			if (y != 0 && y %  10 == 0 && std::abs(x) <=  8)
 				color = 0x333333;
-			/* y-axis unit */
-			if (r < std::abs(x) && r >= std::abs(y-std::floor(y)) && 10*r >= std::abs(x))
+			/* y-axis 100 unit */
+			if (y != 0 && y % 100 == 0 && std::abs(x) <= 10)
 				color = 0x777777;
 
 			/* line */
-			if (2*r >= std::abs(y+2 - 0.5*x))
+			if (std::abs(y+40 - 0.5*x) <= 2)
 				color = 0xffffff;
 			/* circle */
-			if (10*r >= std::abs(x*x+y*y - 3.5*3.5))
+			if (std::abs(x*x+y*y - 325*325) <= 1300)
 				color = 0xffffff;
 			/* parabola */
-			if (2*r >= std::abs(x-1 + 0.1*y*y))
+			if (std::abs(x-1 + 0.0025*y*y) <= 3)
 				color = 0xffffff;
 			/* polynomial */
-			if (12*r >= std::abs(y+4 - 0.01*(x+7)*(x+5)*(x-2)*(x-6)))
+			if (std::abs(y - 0.00000001*(x+700)*(x+500)*(x-200)*(x-600)) <= 10)
 				color = 0xffffff;
 
-			return ~color | 0xff000000;
+			return color | 0xff000000;
 		}
 	}
 	image;
@@ -113,8 +112,8 @@ int pseudo_image(std::vector<std::string> const& args) {
 
 	struct winfo_t {
 		char const* title {"Pseudo Image"};
-		int w {960};
-		int h {720};
+		int w {1280};
+		int h {960};
 	}
 	winfo;
 
