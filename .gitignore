@@ -1,10 +1,4 @@
 .setup
-external/
-
-include/
-lib/
-
 *.swp
-*.d
 *.o
 image

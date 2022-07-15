@@ -1,4 +1,4 @@
-#version 450
+#version 450 core
 
 uniform sampler2D tex;
 
