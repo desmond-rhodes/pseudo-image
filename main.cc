@@ -1,3 +1,10 @@
+struct winfo_t {
+	char const* title {"Pseudo Image"};
+	int w {1280};
+	int h {960};
+}
+winfo;
+
 #include <GL/gl3w.h>
 #include <new>
 
@@ -182,13 +189,6 @@ int main() {
 	if (!glfwInit())
 		return -1;
 	cleanup c_glfw {[]{ glfwTerminate(); }};
-
-	struct winfo_t {
-		char const* title {"Pseudo Image"};
-		int w {1280};
-		int h {960};
-	}
-	winfo;
 
 	GLFWwindow* window;
 	{
