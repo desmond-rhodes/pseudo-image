@@ -9,41 +9,6 @@ winfo;
 #include <new>
 
 class {
-public:
-	GLuint* data {nullptr};
-	size_t w;
-	size_t h;
-
-	bool renew(size_t w, size_t h) {
-		if (data == nullptr || w != this->w || h != this->h) {
-			auto allocate {new (std::nothrow) GLuint[w*h]};
-			if (!allocate)
-				return false;
-			delete[] data;
-
-			data = allocate;
-			this->w = w;
-			this->h = h;
-
-			auto y {static_cast<int>(h)/-2};
-			size_t j {0};
-			while (j < h) {
-				auto x {static_cast<int>(w)/-2};
-				size_t i {0};
-				while (i < w) {
-					data[j*w+i] = fragment(x, y);
-					x += 1;
-					i += 1;
-				}
-				y += 1;
-				j += 1;
-			}
-
-			return true;
-		}
-		return false;
-	}
-
 private:
 	GLuint fragment(int x, int y) {
 		GLuint color {0x000000};
@@ -82,6 +47,41 @@ private:
 			color = 0xffffff;
 
 		return color | 0xff000000;
+	}
+
+public:
+	GLuint* data {nullptr};
+	size_t w;
+	size_t h;
+
+	bool renew(size_t w, size_t h) {
+		if (data == nullptr || w != this->w || h != this->h) {
+			auto allocate {new (std::nothrow) GLuint[w*h]};
+			if (!allocate)
+				return false;
+			delete[] data;
+
+			data = allocate;
+			this->w = w;
+			this->h = h;
+
+			auto y {static_cast<int>(h)/-2};
+			size_t j {0};
+			while (j < h) {
+				auto x {static_cast<int>(w)/-2};
+				size_t i {0};
+				while (i < w) {
+					data[j*w+i] = fragment(x, y);
+					x += 1;
+					i += 1;
+				}
+				y += 1;
+				j += 1;
+			}
+
+			return true;
+		}
+		return false;
 	}
 }
 image;
