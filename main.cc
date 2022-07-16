@@ -1,22 +1,87 @@
+#include <GL/gl3w.h>
+
+class {
+public:
+	bool renew(size_t w, size_t h) {
+		if (data == nullptr || w != this->w || h != this->h) {
+			delete[] data;
+			this->w = w;
+			this->h = h;
+			data = new GLuint[w*h];
+			auto y {static_cast<int>(h)/-2};
+			for (size_t j {0}; j < h; ++j) {
+				auto x {static_cast<int>(w)/-2};
+				for (size_t i {0}; i < w; ++i) {
+					data[j*w+i] = fragment(x, y);
+					x += 1;
+				}
+				y += 1;
+			}
+			return true;
+		}
+		return false;
+	}
+	GLuint* data {nullptr};
+	size_t w;
+	size_t h;
+
+private:
+	GLuint fragment(int x, int y) {
+		GLuint color {0x000000};
+
+		/* x-axis */
+		if (y == 0)
+			color = 0x333333;
+		/* x-axis 10 unit */
+		if (x != 0 && x %  10 == 0 && std::abs(y)  <= 8)
+			color = 0x333333;
+		/* x-axis 100 unit */
+		if (x != 0 && x % 100 == 0 && std::abs(y) <= 10)
+			color = 0x777777;
+
+		/* y-axis */
+		if (x == 0)
+			color = 0x333333;
+		/* y-axis 10 unit */
+		if (y != 0 && y %  10 == 0 && std::abs(x) <=  8)
+			color = 0x333333;
+		/* y-axis 100 unit */
+		if (y != 0 && y % 100 == 0 && std::abs(x) <= 10)
+			color = 0x777777;
+
+		/* line */
+		if (std::abs(y+40 - 0.5*x) <= 2)
+			color = 0xffffff;
+		/* circle */
+		if (std::abs(x*x+y*y - 325*325) <= 1300)
+			color = 0xffffff;
+		/* parabola */
+		if (std::abs(x-1 + 0.0025*y*y) <= 3)
+			color = 0xffffff;
+		/* polynomial */
+		if (std::abs(y - 0.00000001*(x+700)*(x+500)*(x-200)*(x-600)) <= 10)
+			color = 0xffffff;
+
+		return color | 0xff000000;
+	}
+}
+image;
+
 #include <iostream>
 #include <vector>
 #include <string>
-#include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
-#include <fstream>
 #include <stdexcept>
 #include <chrono>
 #include <thread>
-#include <cmath>
 
-int pseudo_image(std::vector<std::string> const&);
+int pseudo_image();
 
-int main(int argc, char* argv[]) {
+int main() {
 	std::ios_base::sync_with_stdio(false);
 	std::cin.tie(nullptr);
 	try {
-		std::vector<std::string> args(argv, argv+argc);
-		return pseudo_image(args);
+		return pseudo_image();
 	}
 	catch (std::exception const& e) {
 		std::cerr << e.what() << '\n';
@@ -32,73 +97,7 @@ std::string file_content(std::string const&);
 GLuint shader_compile(GLenum, std::string const&);
 GLuint shader_link(std::vector<GLuint> const&);
 
-int pseudo_image(std::vector<std::string> const& args) {
-	struct {
-		bool renew(size_t w, size_t h) {
-			if (data == nullptr || w != this->w || h != this->h) {
-				delete[] data;
-				this->w = w;
-				this->h = h;
-				data = new GLuint[w*h];
-				auto y {static_cast<int>(h)/-2};
-				for (size_t j {0}; j < h; ++j) {
-					auto x {static_cast<int>(w)/-2};
-					for (size_t i {0}; i < w; ++i) {
-						data[j*w+i] = fragment(x, y);
-						x += 1;
-					}
-					y += 1;
-				}
-				return true;
-			}
-			return false;
-		}
-		GLuint* data {nullptr};
-		size_t w;
-		size_t h;
-
-	private:
-		GLuint fragment(int x, int y) {
-			GLuint color {0x000000};
-
-			/* x-axis */
-			if (y == 0)
-				color = 0x333333;
-			/* x-axis 10 unit */
-			if (x != 0 && x %  10 == 0 && std::abs(y)  <= 8)
-				color = 0x333333;
-			/* x-axis 100 unit */
-			if (x != 0 && x % 100 == 0 && std::abs(y) <= 10)
-				color = 0x777777;
-
-			/* y-axis */
-			if (x == 0)
-				color = 0x333333;
-			/* y-axis 10 unit */
-			if (y != 0 && y %  10 == 0 && std::abs(x) <=  8)
-				color = 0x333333;
-			/* y-axis 100 unit */
-			if (y != 0 && y % 100 == 0 && std::abs(x) <= 10)
-				color = 0x777777;
-
-			/* line */
-			if (std::abs(y+40 - 0.5*x) <= 2)
-				color = 0xffffff;
-			/* circle */
-			if (std::abs(x*x+y*y - 325*325) <= 1300)
-				color = 0xffffff;
-			/* parabola */
-			if (std::abs(x-1 + 0.0025*y*y) <= 3)
-				color = 0xffffff;
-			/* polynomial */
-			if (std::abs(y - 0.00000001*(x+700)*(x+500)*(x-200)*(x-600)) <= 10)
-				color = 0xffffff;
-
-			return color | 0xff000000;
-		}
-	}
-	image;
-
+int pseudo_image() {
 	struct glfwHandle {
 		glfwHandle() {
 			if (!glfwInit())
@@ -216,7 +215,7 @@ int pseudo_image(std::vector<std::string> const& args) {
 
 	while (!glfwWindowShouldClose(window)) {
 		if (image.renew(winfo.w, winfo.h)) {
-			if (image.w != texture.w || image.h != texture.h) {
+			if (image.w != static_cast<size_t>(texture.w) || image.h != static_cast<size_t>(texture.h)) {
 				texture.resize(image.w, image.h);
 				texture.bind(uniform_tex);
 			}
@@ -231,6 +230,8 @@ int pseudo_image(std::vector<std::string> const& args) {
 
 	return 0;
 }
+
+#include <fstream>
 
 std::string file_content(std::string const& name) {
 	std::ifstream file;
