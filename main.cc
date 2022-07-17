@@ -7,49 +7,67 @@ winfo;
 
 #include <GL/gl3w.h>
 #include <new>
+#include <cmath>
 
-class {
-private:
-	GLuint fragment(int x, int y) {
+struct image_t {
+	double r, rr;
+	double bx, by, bz, bb;
+	double rrpbb;
+	double lx, ly, lz;
+
+	image_t() {
+		r = 300.0;
+		bx = 0.0;
+		by = 0.0;
+		bz = -1.0;
+		bb = bx*bx+by*by+bz*bz;
+		rr = r*r;
+		rrpbb = rr/bb;
+		lx = -1.0;
+		ly = -1.0;
+		lz = -1.0;
+		double const sll {std::sqrt(lx*lx+ly*ly+lz*lz)};
+		lx /= sll;
+		ly /= sll;
+		lz /= sll;
+	}
+
+	GLuint fragment(double ax, double ay) {
 		GLuint color {0x000000};
 
-		/* x-axis */
-		if (y == 0)
-			color = 0x333333;
-		/* x-axis 10 unit */
-		if (x != 0 && x %  10 == 0 && std::abs(y)  <= 8)
-			color = 0x333333;
-		/* x-axis 100 unit */
-		if (x != 0 && x % 100 == 0 && std::abs(y) <= 10)
-			color = 0x777777;
+		double const az {r};
+		double const aa {ax*ax+ay*ay+az*az};
+		double const ab {ax*bx+ay*by+az*bz};
 
-		/* y-axis */
-		if (x == 0)
-			color = 0x333333;
-		/* y-axis 10 unit */
-		if (y != 0 && y %  10 == 0 && std::abs(x) <=  8)
-			color = 0x333333;
-		/* y-axis 100 unit */
-		if (y != 0 && y % 100 == 0 && std::abs(x) <= 10)
-			color = 0x777777;
+		double const abpbb {ab/bb};
+		double const d {abpbb*abpbb - aa/bb + rrpbb};
 
-		/* line */
-		if (std::abs(y+40 - 0.5*x) <= 2)
+		if (d >= 0) {
+			double const sd {std::sqrt(d)};
+			double const t {std::min(-abpbb-sd,-abpbb+sd)};
+			if (t < 0)
+				goto jmp;
+
+			double nx {ax+bx*t};
+			double ny {ay+by*t};
+			double nz {az+bz*t};
+			double const snn {std::sqrt(nx*nx+ny*ny+nz*nz)};
+			nx /= snn;
+			ny /= snn;
+			nz /= snn;
+
+			double const m {std::max(0.0, -lx*nx-ly*ny-lz*nz)};
 			color = 0xffffff;
-		/* circle */
-		if (std::abs(x*x+y*y - 325*325) <= 1300)
-			color = 0xffffff;
-		/* parabola */
-		if (std::abs(x-1 + 0.0025*y*y) <= 3)
-			color = 0xffffff;
-		/* polynomial */
-		if (std::abs(y - 0.00000001*(x+700)*(x+500)*(x-200)*(x-600)) <= 10)
-			color = 0xffffff;
+			GLuint const r {static_cast<GLuint>((color&0xff0000)*m)&0xff0000};
+			GLuint const g {static_cast<GLuint>((color&0x00ff00)*m)&0x00ff00};
+			GLuint const b {static_cast<GLuint>((color&0x0000ff)*m)&0x0000ff};
+			color = r | g | b;
+		}
+		jmp:
 
 		return color | 0xff000000;
 	}
 
-public:
 	GLuint* data {nullptr};
 	size_t w;
 	size_t h;
@@ -65,7 +83,7 @@ public:
 			this->w = w;
 			this->h = h;
 
-			auto y {static_cast<int>(h)/-2};
+			auto y {-static_cast<int>(h)/-2};
 			size_t j {0};
 			while (j < h) {
 				auto x {static_cast<int>(w)/-2};
@@ -75,7 +93,7 @@ public:
 					x += 1;
 					i += 1;
 				}
-				y += 1;
+				y -= 1;
 				j += 1;
 			}
 
