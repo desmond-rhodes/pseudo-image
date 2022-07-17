@@ -8,14 +8,22 @@ winfo;
 #include <GL/gl3w.h>
 #include <new>
 #include <cmath>
+#include <vector>
 
 struct image_t {
+	std::vector<double> px, py, pz;
 	double r, rr;
 	double bx, by, bz, bb;
 	double rrpbb;
 	double lx, ly, lz;
 
 	image_t() {
+		for (double a {0.00}; a < 6.28; a += 0.07)
+			px.push_back(std::cos(a));
+		for (double a {1.57}; a < 7.85; a += 0.03)
+			py.push_back(std::cos(a));
+		for (double a {0.00}; a < 6.28; a += 0.05)
+			pz.push_back(std::sin(a));
 		r = 300.0;
 		bx = 0.0;
 		by = 0.0;
@@ -23,17 +31,10 @@ struct image_t {
 		bb = bx*bx+by*by+bz*bz;
 		rr = r*r;
 		rrpbb = rr/bb;
-		lx = -1.0;
-		ly = -1.0;
-		lz = -1.0;
-		double const sll {std::sqrt(lx*lx+ly*ly+lz*lz)};
-		lx /= sll;
-		ly /= sll;
-		lz /= sll;
 	}
 
 	GLuint fragment(double ax, double ay) {
-		GLuint color {0x000000};
+		GLuint color {0x333333};
 
 		double const az {r};
 		double const aa {ax*ax+ay*ay+az*az};
@@ -72,34 +73,43 @@ struct image_t {
 	size_t w;
 	size_t h;
 
-	bool renew(size_t w, size_t h) {
-		if (data == nullptr || w != this->w || h != this->h) {
-			auto allocate {new (std::nothrow) GLuint[w*h]};
+	size_t frame;
+
+	bool renew(size_t _w, size_t _h) {
+		if (data == nullptr || _w != w || _h != h) {
+			auto allocate {new (std::nothrow) GLuint[_w*_h]};
 			if (!allocate)
 				return false;
 			delete[] data;
-
 			data = allocate;
-			this->w = w;
-			this->h = h;
-
-			auto y {-static_cast<int>(h)/-2};
-			size_t j {0};
-			while (j < h) {
-				auto x {static_cast<int>(w)/-2};
-				size_t i {0};
-				while (i < w) {
-					data[j*w+i] = fragment(x, y);
-					x += 1;
-					i += 1;
-				}
-				y -= 1;
-				j += 1;
-			}
-
-			return true;
+			w = _w;
+			h = _h;
 		}
-		return false;
+
+		lx = px[frame%px.size()];
+		ly = py[frame%py.size()];
+		lz = pz[frame%pz.size()];
+		double const sll {std::sqrt(lx*lx+ly*ly+lz*lz)};
+		lx /= sll;
+		ly /= sll;
+		lz /= sll;
+
+		auto y {-static_cast<int>(h)/-2};
+		size_t j {0};
+		while (j < h) {
+			auto x {static_cast<int>(w)/-2};
+			size_t i {0};
+			while (i < w) {
+				data[j*w+i] = fragment(x, y);
+				x += 1;
+				i += 1;
+			}
+			y -= 1;
+			j += 1;
+		}
+
+		frame += 1;
+		return true;
 	}
 }
 image;
@@ -321,15 +331,14 @@ int main() {
 	std::cout << std::flush;
 
 	while (!glfwWindowShouldClose(window)) {
-		if (image.renew(winfo.w, winfo.h)) {
-			if (image.w != static_cast<size_t>(texture.w) || image.h != static_cast<size_t>(texture.h)) {
-				texture.resize(image.w, image.h);
-				texture.bind(uniform_tex);
-			}
-			texture.data(image.w, image.h, image.data);
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
-			glfwSwapBuffers(window);
+		image.renew(winfo.w, winfo.h);
+		if (image.w != static_cast<size_t>(texture.w) || image.h != static_cast<size_t>(texture.h)) {
+			texture.resize(image.w, image.h);
+			texture.bind(uniform_tex);
 		}
+		texture.data(image.w, image.h, image.data);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+		glfwSwapBuffers(window);
 		glfwPollEvents();
 		std::this_thread::sleep_for(r_limit - (std::chrono::steady_clock::now() - r_last));
 		r_last = std::chrono::steady_clock::now();
