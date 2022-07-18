@@ -8,30 +8,17 @@ winfo;
 #include <GL/gl3w.h>
 #include <new>
 #include <cmath>
-#include <vector>
 
 struct image_t {
-	std::vector<double> px, py, pz;
-	double r, rr;
-	double bx, by, bz, bb;
-	double rrpbb;
-	double lx, ly, lz;
+	double r  {300.0};
+	double rr { r*r};
+	double bx { 0.0};
+	double by { 0.0};
+	double bz {-1.0};
+	double bb {bx*bx+by*by+bz*bz};
+	double rrpbb {rr/bb};
 
-	image_t() {
-		for (double a {0.00}; a < 6.28; a += 0.07)
-			px.push_back(std::cos(a));
-		for (double a {1.57}; a < 7.85; a += 0.03)
-			py.push_back(std::cos(a));
-		for (double a {0.00}; a < 6.28; a += 0.05)
-			pz.push_back(std::sin(a));
-		r = 300.0;
-		bx = 0.0;
-		by = 0.0;
-		bz = -1.0;
-		bb = bx*bx+by*by+bz*bz;
-		rr = r*r;
-		rrpbb = rr/bb;
-	}
+	double lx, ly, lz;
 
 	GLuint fragment(double ax, double ay) {
 		GLuint color {0x333333};
@@ -70,29 +57,32 @@ struct image_t {
 	}
 
 	GLuint* data {nullptr};
-	size_t w;
-	size_t h;
+	size_t w {0};
+	size_t h {0};
 
-	size_t frame;
+	size_t frame {0};
 
-	bool renew(size_t _w, size_t _h) {
+	void renew(size_t _w, size_t _h) {
 		if (data == nullptr || _w != w || _h != h) {
 			auto allocate {new (std::nothrow) GLuint[_w*_h]};
 			if (!allocate)
-				return false;
+				return;
 			delete[] data;
 			data = allocate;
 			w = _w;
 			h = _h;
 		}
 
-		lx = px[frame%px.size()];
-		ly = py[frame%py.size()];
-		lz = pz[frame%pz.size()];
+		if ((!px || !py || !pz) && !create_path())
+			return;
+		lx = px[frame%px_n];
+		ly = py[frame%py_n];
+		lz = pz[frame%pz_n];
 		double const sll {std::sqrt(lx*lx+ly*ly+lz*lz)};
 		lx /= sll;
 		ly /= sll;
 		lz /= sll;
+		frame += 1;
 
 		auto y {-static_cast<int>(h)/-2};
 		size_t j {0};
@@ -107,14 +97,54 @@ struct image_t {
 			y -= 1;
 			j += 1;
 		}
+	}
 
-		frame += 1;
+	double* px {nullptr};
+	double* py {nullptr};
+	double* pz {nullptr};
+	size_t px_n, py_n, pz_n;
+
+	bool create_path() {
+		size_t i;
+		double a;
+
+		px_n = std::ceil(6.28/0.07);
+		py_n = std::ceil(6.28/0.03);
+		pz_n = std::ceil(6.28/0.05);
+
+		px = new (std::nothrow) double[px_n];
+		py = new (std::nothrow) double[py_n];
+		pz = new (std::nothrow) double[pz_n];
+
+		if (!px || !py || !pz) {
+			delete[] px;
+			delete[] py;
+			delete[] pz;
+			px = nullptr;
+			py = nullptr;
+			pz = nullptr;
+			return false;
+		}
+
+		for (i = 0, a = 0.00; i < px_n; ++i, a += 0.07)
+			px[i] = std::cos(a);
+		for (i = 0, a = 1.57; i < py_n; ++i, a += 0.03)
+			py[i] = std::cos(a);
+		for (i = 0, a = 0.00; i < pz_n; ++i, a += 0.05)
+			pz[i] = std::sin(a);
+
 		return true;
+	}
+
+	~image_t() {
+		delete[] data;
+		delete[] px;
+		delete[] py;
+		delete[] pz;
 	}
 }
 image;
 
-#include <optional>
 #include <ostream>
 #include <fstream>
 
@@ -195,16 +225,6 @@ GLuint shader_link(size_t n, GLuint const obj[], std::ostream& os) {
 	return pro;
 }
 
-#include <functional>
-
-class cleanup {
-public:
-	cleanup(std::function<void()> p) : f {p} {}
-	~cleanup() { f(); }
-private:
-	std::function<void()> f;
-};
-
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <chrono>
@@ -216,7 +236,7 @@ int main() {
 
 	if (!glfwInit())
 		return -1;
-	cleanup c_glfw {[]{ glfwTerminate(); }};
+	struct c_glfw_t { ~c_glfw_t() { glfwTerminate(); } } c_glfw;
 
 	GLFWwindow* window;
 	{
@@ -236,7 +256,7 @@ int main() {
 		glfwMakeContextCurrent(window);
 		if (gl3wInit())
 			return -1;
-		std::cout << "OpenGL " << glGetString(GL_VERSION) << ", GLSL " << glGetString(GL_SHADING_LANGUAGE_VERSION) << '\n';
+		std::cout << "OpenGL " << glGetString(GL_VERSION) << ", GLSL " << glGetString(GL_SHADING_LANGUAGE_VERSION) << '\n' << std::flush;
 	}
 
 	GLuint sha;
@@ -327,8 +347,6 @@ int main() {
 
 	std::chrono::microseconds const r_limit {16666}; /* 60Hz */
 	auto r_last {std::chrono::steady_clock::now()};
-
-	std::cout << std::flush;
 
 	while (!glfwWindowShouldClose(window)) {
 		image.renew(winfo.w, winfo.h);
